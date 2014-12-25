@@ -1,10 +1,10 @@
-package com.takisoft.mail.util;
+package com.takisoft.mail.util.provider;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-final class DefaultMimeProvider implements MimeProvider {
+public final class DefaultMimeProvider implements MimeProvider {
 
     private static final String[][] EXT_TO_MIME = new String[][]{
         {"323", "text/h323"},
@@ -623,7 +623,7 @@ final class DefaultMimeProvider implements MimeProvider {
         }
     }
 
-    DefaultMimeProvider() {
+    public DefaultMimeProvider() {
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.takisoft.mail.util;
+package com.takisoft.mail.util.provider;
 
 /**
  * Provider interface to be used with {@link Base64}. This class should

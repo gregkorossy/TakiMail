@@ -12,7 +12,7 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-public class SMTP {
+public class SmtpClient {
 
     protected static enum Command {
 
@@ -44,15 +44,15 @@ public class SMTP {
         security = Security.NONE;
     }
 
-    public SMTP() {
+    public SmtpClient() {
     }
 
-    public SMTP(String host, int port) {
+    public SmtpClient(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
-    public SMTP(String host, int port, String user, String pass, Security security) {
+    public SmtpClient(String host, int port, String user, String pass, Security security) {
         this.host = host;
         this.port = port;
         this.user = user;

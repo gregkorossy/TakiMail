@@ -1,18 +1,26 @@
 package com.takisoft.mail.util;
 
+import com.takisoft.mail.util.provider.Base64Provider;
+import com.takisoft.mail.util.provider.DefaultBase64Provider;
+
 public class Base64 {
 
     private static Base64 instance;
     private static Base64Provider provider;
 
-    private Base64() {
-        if (provider == null) {
-            throw new IllegalStateException("Base64 provider is not set!");
-        }
+    static {
+        provider = new DefaultBase64Provider();
     }
 
-    public static void setProvider(Base64Provider provider) {
-        Base64.provider = provider;
+    private Base64() {
+    }
+
+    static void setProvider(Base64Provider provider) {
+        if (provider == null) {
+            Base64.provider = new DefaultBase64Provider();
+        } else {
+            Base64.provider = provider;
+        }
     }
 
     public static Base64 getInstance() {

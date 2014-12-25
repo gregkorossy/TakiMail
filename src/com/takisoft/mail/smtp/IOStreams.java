@@ -1,7 +1,7 @@
 package com.takisoft.mail.smtp;
 
 import com.takisoft.mail.MailConstants;
-import com.takisoft.mail.util.Utils;
+import com.takisoft.mail.util.MailUtils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class IOStreams {
 
         while ((line = reader.readLine()) != null) {
             if (response == null) {
-                response = new SmtpResponse(Utils.findSmtpResponseCode(line));
+                response = new SmtpResponse(MailUtils.findSmtpResponseCode(line));
                 if (response.getCodeInt() == -1) {
                     return null;
                 }
@@ -80,7 +80,7 @@ public class IOStreams {
         System.out.println(">>> " + command);
     }
 
-    public void send(SMTP.Command command, Object... params) throws IOException {
+    public void send(SmtpClient.Command command, Object... params) throws IOException {
         String cmdStr = String.format(command.getCommand(), params);
         send(cmdStr);
     }

@@ -1,4 +1,4 @@
-package com.takisoft.mail.util;
+package com.takisoft.mail.util.provider;
 
 import java.io.File;
 

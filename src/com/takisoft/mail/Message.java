@@ -1,8 +1,8 @@
 package com.takisoft.mail;
 
 import com.takisoft.mail.util.Base64;
-import com.takisoft.mail.util.MimeProvider;
-import com.takisoft.mail.util.Utils;
+import com.takisoft.mail.util.provider.MimeProvider;
+import com.takisoft.mail.util.MailUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;

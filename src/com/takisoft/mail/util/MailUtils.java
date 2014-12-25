@@ -1,10 +1,13 @@
 package com.takisoft.mail.util;
 
+import com.takisoft.mail.util.provider.Base64Provider;
+import com.takisoft.mail.util.provider.MimeProvider;
+import com.takisoft.mail.util.provider.DefaultMimeProvider;
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Utils {
+public class MailUtils {
 
     private static final Pattern NUMBER_PATTERN;
 
@@ -15,7 +18,7 @@ public class Utils {
         mimeProvider = new DefaultMimeProvider();
     }
 
-    private Utils() {
+    private MailUtils() {
     }
 
     public static int findSmtpResponseCode(String line) {
@@ -35,6 +38,10 @@ public class Utils {
     }
 
     public static void setMimeProvider(MimeProvider mimeProvider) {
-        Utils.mimeProvider = mimeProvider;
+        MailUtils.mimeProvider = mimeProvider;
+    }
+
+    public static void setBase64Provider(Base64Provider base64Provider) {
+        Base64.setProvider(base64Provider);
     }
 }

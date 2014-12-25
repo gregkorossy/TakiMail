@@ -1,6 +1,6 @@
 package com.takisoft.mail;
 
-import com.takisoft.mail.util.Utils;
+import com.takisoft.mail.util.MailUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,7 +17,7 @@ public class Attachment {
         FileInputStream fis = new FileInputStream(file);
         fis.read(data);
         fis.close();
-        setMime(Utils.getMime(file));
+        setMime(MailUtils.getMime(file));
     }
 
     public Attachment(String name, byte[] data, String mime) {
