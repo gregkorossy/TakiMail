@@ -18,33 +18,7 @@ public class IOStreams {
         dos = new DataOutputStream(socket.getOutputStream());
     }
 
-    @Deprecated
-    public String receive() throws IOException {
-        String line = reader.readLine();
-        System.out.println("<<< " + line);
-        return line;
-    }
-
-    @Deprecated
-    public String receiveAll() throws IOException {
-        StringBuilder sb = new StringBuilder();
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-            sb.append(line);
-            sb.append(MailConstants.CRLF);
-
-            if (line.charAt(3) == ' ') {
-                break;
-            }
-        }
-
-        System.out.println("<<< " + sb.toString());
-
-        return sb.toString();
-    }
-
-    public SmtpResponse receiveNEW() throws IOException {
+    public SmtpResponse receive() throws IOException {
         SmtpResponse response = null;
 
         int delimiterIndex = -1;
@@ -59,7 +33,7 @@ public class IOStreams {
 
                 delimiterIndex = Integer.toString(response.getCodeInt()).length();
             }
-            response.addLine(line.substring(delimiterIndex + 1));
+            response.addLine(line.substring(delimiterIndex + 1).trim());
 
             if (line.charAt(delimiterIndex) == ' ') {
                 break;

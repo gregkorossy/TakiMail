@@ -1,6 +1,7 @@
 package com.takisoft.mail.smtp;
 
 import com.takisoft.mail.MailConstants;
+import com.takisoft.mail.exception.SmtpReplyCodeException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,11 +61,19 @@ public final class SmtpResponse {
         return false;
     }
 
+    public SmtpResponse throwException() throws SmtpReplyCodeException {
+        if (codeInt >= 400) {
+            throw new SmtpReplyCodeException(codeInt, getSingleLine());
+        }
+
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
-        sb.append(codeInt + " " + code);
+        sb.append(codeInt).append(" ").append(code);
         sb.append(']');
         sb.append(MailConstants.CRLF);
 

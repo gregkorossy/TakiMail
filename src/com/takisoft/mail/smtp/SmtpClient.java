@@ -4,9 +4,11 @@ import com.takisoft.mail.MailConstants;
 import com.takisoft.mail.MailConstants.Security;
 import com.takisoft.mail.Message;
 import com.takisoft.mail.Recipient;
+import com.takisoft.mail.exception.SmtpReplyCodeException;
+import com.takisoft.mail.smtp.SmtpConstants.AuthMethod;
+import com.takisoft.mail.util.Base64;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Base64;
 import java.util.List;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -16,7 +18,7 @@ public class SmtpClient {
 
     protected static enum Command {
 
-        AUTH("AUTH %s"), HELO("HELO %s"), EHLO("EHLO %s"), STARTTLS("STARTTLS"), QUIT("QUIT"),
+        AUTH("AUTH %s %s"), HELO("HELO %s"), EHLO("EHLO %s"), STARTTLS("STARTTLS"), QUIT("QUIT"),
         MAIL_FROM("MAIL FROM: <%s>"), RCPT_TO("RCPT TO: <%s>"), DATA_START("DATA"), DATA_END(MailConstants.CRLF + ".");
 
         final String command;
@@ -100,7 +102,7 @@ public class SmtpClient {
         this.pass = pass;
     }
 
-    public void connect() {
+    public void connect() throws IOException, SmtpReplyCodeException {
         if (host == null) {
             throw new IllegalStateException("Host is unknown!");
         }
@@ -109,47 +111,50 @@ public class SmtpClient {
             throw new IllegalStateException("Port is unknown!");
         }
 
-        try {
-            if (security == Security.SSL) {
-                socket = createSecureSocket(null);
-            } else {
-                socket = createUnsecureSocket();
-            }
-
-            ioOperations = new IOStreams(socket);
-
-            SmtpResponse serverWelcomeMsg = ioOperations.receiveNEW();
-
-            if (serverWelcomeMsg.getSingleLine().toUpperCase().contains("ESMTP")) {
-                ioOperations.send(Command.EHLO, host);
-                Socket upgSocket = upgradeConnectionNEW(ioOperations.receiveNEW());
-                if (upgSocket != null) {
-                    socket = upgSocket;
-                    ioOperations = new IOStreams(socket);
-                }
-            } else {
-                ioOperations.send(Command.HELO, host);
-                ioOperations.receiveNEW();
-            }
-
-            login();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (security == Security.SSL) {
+            socket = createSecureSocket(null);
+        } else {
+            socket = createInsecureSocket();
         }
+
+        ioOperations = new IOStreams(socket);
+
+        SmtpResponse serverWelcomeMsg = ioOperations.receive();
+        serverWelcomeMsg.throwException();
+
+        SmtpResponse ehloMsg;
+
+        if (serverWelcomeMsg.getSingleLine().toUpperCase().contains("ESMTP")) {
+            ioOperations.send(Command.EHLO, host);
+            ehloMsg = ioOperations.receive();
+
+            Socket upgSocket = upgradeConnection(ehloMsg);
+            if (upgSocket != null) {
+                socket = upgSocket;
+                ioOperations = new IOStreams(socket);
+                ioOperations.send(Command.EHLO, host);
+                ehloMsg = ioOperations.receive();
+            }
+        } else {
+            ioOperations.send(Command.HELO, host);
+            ehloMsg = ioOperations.receive();
+        }
+        
+        auth(ehloMsg);
     }
 
-    public void send(Message msg) throws IOException {
+    public void send(Message msg) throws IOException, SmtpReplyCodeException {
         ioOperations.send(Command.MAIL_FROM, /*user*/ msg.getFrom());
-        ioOperations.receiveNEW();
+        ioOperations.receive().throwException();
 
         List<Recipient> recipients = msg.getRecipients();
 
         for (Recipient recipient : recipients) {
             ioOperations.send(Command.RCPT_TO, recipient.getAddress());
-            ioOperations.receiveNEW();
+            ioOperations.receive().throwException();
         }
         ioOperations.send(Command.DATA_START);
-        ioOperations.receiveNEW();
+        ioOperations.receive().throwException();
 
         String msgData = msg.toString();
 
@@ -159,55 +164,80 @@ public class SmtpClient {
         for (int i = 0; i < len; i += partSize) {
             int end = Math.min(len - i, partSize);
             ioOperations.write(msgData.substring(i, i + end));
-            //ioOperations.write(CRLF);
         }
 
         ioOperations.send(Command.DATA_END);
-        ioOperations.receiveNEW();
+        ioOperations.receive().throwException();
     }
 
-    public void disconnect() {
+    public void disconnect() throws IOException, SmtpReplyCodeException {
         if (socket != null && !socket.isClosed()) {
-            try {
-                ioOperations.send(Command.QUIT);
-                ioOperations.receiveNEW();
-                socket.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            ioOperations.send(Command.QUIT);
+            ioOperations.receive().throwException();
+            socket.close();
+        }
+    }
+
+    protected void auth(SmtpResponse featureListResponse) throws IOException, SmtpReplyCodeException {
+        List<String> lines = featureListResponse.getLines();
+
+        for (String line : lines) {
+            if (line.toUpperCase().startsWith("AUTH")) {
+                // TODO remove AUTH (remove index #0)
+                String[] params = line.split(" ");
+                AuthMethod method = AuthMethod.getFirstSupported(params);
+                if (method != null) {
+                    switch (method) {
+                        case LOGIN:
+                            authLogin();
+                            break;
+                        case PLAIN:
+                            authPlain();
+                            break;
+                        default:
+                            throw new SmtpReplyCodeException(999);
+                    }
+                }
             }
         }
     }
 
-    protected void login() throws IOException {
+    protected void authLogin() throws IOException, SmtpReplyCodeException {
         if (user != null && pass != null) {
-            Base64.Encoder enc = Base64.getEncoder();
+            Base64 enc = Base64.getInstance();
 
-            ioOperations.send(Command.AUTH, "LOGIN");
-
-            ioOperations.receiveNEW();
-            ioOperations.send(enc.encodeToString(user.getBytes()));
-            ioOperations.receiveNEW();
+            ioOperations.send(Command.AUTH, "LOGIN", enc.encodeToString(user.getBytes()));
+            ioOperations.receive().throwException();
             ioOperations.send(enc.encodeToString(pass.getBytes()));
-            ioOperations.receiveNEW();
+            ioOperations.receive().throwException();
         }
     }
 
-    @Deprecated
-    protected Socket upgradeConnection(String ehloStr) throws IOException {
-        if (Security.TLS == security && ehloStr.toUpperCase().contains("STARTTLS")) {
-            System.out.println("[UPGRADING CONNECTION TO TLS]");
-            ioOperations.send(Command.STARTTLS);
-            ioOperations.receiveAll();
+    /**
+     * https://tools.ietf.org/html/rfc2595#section-6
+     *
+     * @throws IOException
+     * @throws SmtpReplyCodeException
+     */
+    protected void authPlain() throws IOException, SmtpReplyCodeException {
+        if (user != null && pass != null) {
+            Base64 enc = Base64.getInstance();
 
-            return createSecureSocket(socket);
+            StringBuilder sb = new StringBuilder(user);
+            sb.append('\0');
+            sb.append(user);
+            sb.append('\0');
+            sb.append(pass);
+
+            ioOperations.send(Command.AUTH, "PLAIN", enc.encodeToString(sb.toString().getBytes()));
+            ioOperations.receive().throwException();
         }
-        return null;
     }
 
-    protected Socket upgradeConnectionNEW(SmtpResponse response) throws IOException {
-        if (Security.TLS == security && response.contains("STARTTLS")) {
+    protected Socket upgradeConnection(SmtpResponse response) throws IOException {
+        if (Security.SSL != security && response.contains("STARTTLS")) {
             ioOperations.send(Command.STARTTLS);
-            ioOperations.receiveNEW();
+            ioOperations.receive();
 
             return createSecureSocket(socket);
         }
@@ -246,7 +276,7 @@ public class SmtpClient {
         return newSocket;
     }
 
-    protected Socket createUnsecureSocket() throws IOException {
+    protected Socket createInsecureSocket() throws IOException {
         Socket newSocket = (Socket) SocketFactory.getDefault().createSocket(host, port);
         return newSocket;
     }
