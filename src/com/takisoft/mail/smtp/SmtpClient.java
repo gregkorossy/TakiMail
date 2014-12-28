@@ -36,6 +36,8 @@ public class SmtpClient {
     private int port;
     private String user;
     private String pass;
+    private String token;
+    
     private Security security;
 
     private Socket socket;
@@ -100,6 +102,14 @@ public class SmtpClient {
 
     public void setPass(String pass) {
         this.pass = pass;
+    }
+    
+    protected String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public void connect() throws IOException, SmtpReplyCodeException {
@@ -206,7 +216,7 @@ public class SmtpClient {
         if (user != null && pass != null) {
             Base64 enc = Base64.getInstance();
 
-            ioOperations.send(Command.AUTH, "LOGIN", enc.encodeToString(user.getBytes()));
+            ioOperations.send(Command.AUTH, AuthMethod.LOGIN.getName(), enc.encodeToString(user.getBytes()));
             ioOperations.receive().throwException();
             ioOperations.send(enc.encodeToString(pass.getBytes()));
             ioOperations.receive().throwException();
@@ -229,8 +239,32 @@ public class SmtpClient {
             sb.append('\0');
             sb.append(pass);
 
-            ioOperations.send(Command.AUTH, "PLAIN", enc.encodeToString(sb.toString().getBytes()));
+            ioOperations.send(Command.AUTH, AuthMethod.PLAIN.getName(), enc.encodeToString(sb.toString().getBytes()));
             ioOperations.receive().throwException();
+        }
+    }
+    
+    protected void authOauth2() throws IOException, SmtpReplyCodeException {
+        if (user != null && token != null) {
+            final char CTRL_A = '\001';
+            Base64 enc = Base64.getInstance();
+
+            StringBuilder sb = new StringBuilder(user);
+            sb.append(CTRL_A);
+            sb.append("auth=Bearer ");
+            sb.append(token);
+            sb.append(CTRL_A);
+            sb.append(CTRL_A);
+
+            ioOperations.send(Command.AUTH, AuthMethod.XOAUTH2.getName(), enc.encodeToString(sb.toString().getBytes()));
+            SmtpResponse response = ioOperations.receive();
+            
+            if(response.getCode() == SmtpConstants.ReplyCode.AUTH_CONTINUE){
+                ioOperations.send("");
+                response = ioOperations.receive();
+            }
+            
+            response.throwException();
         }
     }
 

@@ -2,10 +2,9 @@ package com.takisoft.mail.smtp;
 
 public class SmtpConstants {
 
-    // TODO XOAUTH2
     public static enum AuthMethod {
 
-        LOGIN("LOGIN"), PLAIN("PLAIN");
+        LOGIN("LOGIN"), PLAIN("PLAIN"), XOAUTH2("XOAUTH2");
 
         private final String name;
 
