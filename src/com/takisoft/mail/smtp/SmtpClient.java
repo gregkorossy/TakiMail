@@ -1,10 +1,12 @@
 package com.takisoft.mail.smtp;
 
+import com.takisoft.mail.MailCommand;
 import com.takisoft.mail.MailConstants;
 import com.takisoft.mail.MailConstants.Security;
 import com.takisoft.mail.Message;
 import com.takisoft.mail.Recipient;
 import com.takisoft.mail.exception.SmtpReplyCodeException;
+import com.takisoft.mail.net.NetUtils;
 import com.takisoft.mail.smtp.SmtpConstants.AuthMethod;
 import com.takisoft.mail.util.Base64;
 import java.io.IOException;
@@ -16,7 +18,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 public class SmtpClient {
 
-    protected static enum Command {
+    protected static enum Command implements MailCommand {
 
         AUTH("AUTH %s %s"), HELO("HELO %s"), EHLO("EHLO %s"), STARTTLS("STARTTLS"), QUIT("QUIT"),
         MAIL_FROM("MAIL FROM: <%s>"), RCPT_TO("RCPT TO: <%s>"), DATA_START("DATA"), DATA_END(MailConstants.CRLF + ".");
@@ -27,6 +29,7 @@ public class SmtpClient {
             this.command = command;
         }
 
+        @Override
         public String getCommand() {
             return command;
         }
@@ -37,11 +40,11 @@ public class SmtpClient {
     private String user;
     private String pass;
     private String token;
-    
+
     private Security security;
 
     private Socket socket;
-    private IOStreams ioOperations;
+    private SmtpStreams ioOperations;
 
     {
         port = -1;
@@ -103,7 +106,7 @@ public class SmtpClient {
     public void setPass(String pass) {
         this.pass = pass;
     }
-    
+
     protected String getToken() {
         return token;
     }
@@ -122,12 +125,12 @@ public class SmtpClient {
         }
 
         if (security == Security.SSL) {
-            socket = createSecureSocket(null);
+            socket = NetUtils.createSecureSocket(host, port);
         } else {
-            socket = createInsecureSocket();
+            socket = NetUtils.createInsecureSocket(host, port);
         }
 
-        ioOperations = new IOStreams(socket);
+        ioOperations = new SmtpStreams(socket);
 
         SmtpResponse serverWelcomeMsg = ioOperations.receive();
         serverWelcomeMsg.throwException();
@@ -141,7 +144,7 @@ public class SmtpClient {
             Socket upgSocket = upgradeConnection(ehloMsg);
             if (upgSocket != null) {
                 socket = upgSocket;
-                ioOperations = new IOStreams(socket);
+                ioOperations = new SmtpStreams(socket);
                 ioOperations.send(Command.EHLO, host);
                 ehloMsg = ioOperations.receive();
             }
@@ -149,7 +152,7 @@ public class SmtpClient {
             ioOperations.send(Command.HELO, host);
             ehloMsg = ioOperations.receive();
         }
-        
+
         auth(ehloMsg);
     }
 
@@ -194,6 +197,7 @@ public class SmtpClient {
         for (String line : lines) {
             if (line.toUpperCase().startsWith("AUTH")) {
                 // TODO remove AUTH (remove index #0)
+                // TODO add XOAUTH2 to the switch...case
                 String[] params = line.split(" ");
                 AuthMethod method = AuthMethod.getFirstSupported(params);
                 if (method != null) {
@@ -243,7 +247,7 @@ public class SmtpClient {
             ioOperations.receive().throwException();
         }
     }
-    
+
     protected void authOauth2() throws IOException, SmtpReplyCodeException {
         if (user != null && token != null) {
             final char CTRL_A = '\001';
@@ -258,12 +262,12 @@ public class SmtpClient {
 
             ioOperations.send(Command.AUTH, AuthMethod.XOAUTH2.getName(), enc.encodeToString(sb.toString().getBytes()));
             SmtpResponse response = ioOperations.receive();
-            
-            if(response.getCode() == SmtpConstants.ReplyCode.AUTH_CONTINUE){
+
+            if (response.getCode() == SmtpConstants.ReplyCode.AUTH_CONTINUE) {
                 ioOperations.send("");
                 response = ioOperations.receive();
             }
-            
+
             response.throwException();
         }
     }
@@ -273,45 +277,8 @@ public class SmtpClient {
             ioOperations.send(Command.STARTTLS);
             ioOperations.receive();
 
-            return createSecureSocket(socket);
+            return NetUtils.upgradeSocketToSecure(socket);
         }
         return null;
-    }
-
-    protected Socket createSecureSocket(Socket oldSocket) throws IOException {
-        SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-
-        SSLSocket newSocket;
-        if (oldSocket == null) {
-            newSocket = (SSLSocket) sslFactory.createSocket(host, port);
-        } else {
-            newSocket = (SSLSocket) sslFactory.createSocket(oldSocket, oldSocket.getInetAddress().getHostAddress(), oldSocket.getPort(), true);
-        }
-
-        newSocket.setUseClientMode(true);
-        newSocket.startHandshake();
-
-//        String[] data = socket.getSupportedCipherSuites();
-//
-//        System.out.println("---- SupportedCipherSuites ----");
-//        for(String s : data){
-//            System.out.println(s);
-//        }
-//        
-//        data = socket.getSupportedProtocols();
-//        
-//        System.out.println("---- SupportedProtocols ----");
-//        for(String s : data){
-//            System.out.println(s);
-//        }
-//        
-//        socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
-//        socket.setEnabledProtocols(new String[]{"TLSv1.2"});
-        return newSocket;
-    }
-
-    protected Socket createInsecureSocket() throws IOException {
-        Socket newSocket = (Socket) SocketFactory.getDefault().createSocket(host, port);
-        return newSocket;
     }
 }
