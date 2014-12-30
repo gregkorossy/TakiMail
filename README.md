@@ -3,6 +3,9 @@ TakiMail
 
 Simple mail handler implementations.
 
+## Compatibility
+TakiMail is compatible with Java (1.6+) and Android. We included the `TakiMail.jar` file in the `dist` folder to make it easier to use.
+
 ## License
 This is free and unencumbered software released into the public domain.
 
