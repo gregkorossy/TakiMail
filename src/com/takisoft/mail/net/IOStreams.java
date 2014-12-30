@@ -2,6 +2,7 @@ package com.takisoft.mail.net;
 
 import com.takisoft.mail.MailCommand;
 import com.takisoft.mail.MailConstants;
+import com.takisoft.mail.util.Utils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -56,7 +57,7 @@ public abstract class IOStreams<T> {
      * @throws IOException if an I/O error occurs
      */
     public void send(String command) throws IOException {
-        outgoing.write((command + MailConstants.CRLF).getBytes());
+        outgoing.write(Utils.getBytes(command + MailConstants.CRLF));
         outgoing.flush();
     }
 
@@ -87,6 +88,6 @@ public abstract class IOStreams<T> {
      * @throws IOException if an I/O error occurs
      */
     public void write(String data) throws IOException {
-        outgoing.write(data.getBytes());
+        outgoing.write(Utils.getBytes(data));
     }
 }

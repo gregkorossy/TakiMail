@@ -9,6 +9,7 @@ import com.takisoft.mail.exception.SmtpReplyCodeException;
 import com.takisoft.mail.net.NetUtils;
 import com.takisoft.mail.smtp.SmtpConstants.AuthMethod;
 import com.takisoft.mail.util.Base64;
+import com.takisoft.mail.util.Utils;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
@@ -220,9 +221,9 @@ public class SmtpClient {
         if (user != null && pass != null) {
             Base64 enc = Base64.getInstance();
 
-            ioOperations.send(Command.AUTH, AuthMethod.LOGIN.getName(), enc.encodeToString(user.getBytes()));
+            ioOperations.send(Command.AUTH, AuthMethod.LOGIN.getName(), enc.encodeToString(Utils.getBytes(user)));
             ioOperations.receive().throwException();
-            ioOperations.send(enc.encodeToString(pass.getBytes()));
+            ioOperations.send(enc.encodeToString(Utils.getBytes(pass)));
             ioOperations.receive().throwException();
         }
     }
@@ -243,7 +244,7 @@ public class SmtpClient {
             sb.append('\0');
             sb.append(pass);
 
-            ioOperations.send(Command.AUTH, AuthMethod.PLAIN.getName(), enc.encodeToString(sb.toString().getBytes()));
+            ioOperations.send(Command.AUTH, AuthMethod.PLAIN.getName(), enc.encodeToString(Utils.getBytes(sb.toString())));
             ioOperations.receive().throwException();
         }
     }
@@ -260,7 +261,7 @@ public class SmtpClient {
             sb.append(CTRL_A);
             sb.append(CTRL_A);
 
-            ioOperations.send(Command.AUTH, AuthMethod.XOAUTH2.getName(), enc.encodeToString(sb.toString().getBytes()));
+            ioOperations.send(Command.AUTH, AuthMethod.XOAUTH2.getName(), enc.encodeToString(Utils.getBytes(sb.toString())));
             SmtpResponse response = ioOperations.receive();
 
             if (response.getCode() == SmtpConstants.ReplyCode.AUTH_CONTINUE) {

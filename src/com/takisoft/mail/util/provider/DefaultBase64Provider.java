@@ -1,5 +1,7 @@
 package com.takisoft.mail.util.provider;
 
+import com.takisoft.mail.util.Utils;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 public class DefaultBase64Provider implements Base64Provider {
@@ -124,6 +126,6 @@ public class DefaultBase64Provider implements Base64Provider {
 
     @Override
     public byte[] decode(String src) {
-        return decode(src.getBytes());
+        return decode(Utils.getBytes(src));
     }
 }

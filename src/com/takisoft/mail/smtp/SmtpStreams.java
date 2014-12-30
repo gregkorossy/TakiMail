@@ -40,22 +40,4 @@ class SmtpStreams extends IOStreams<SmtpResponse> {
 
         return response;
     }
-
-    /*    @Override
-     public void send(String command) throws IOException {
-     outgoing.write((command + MailConstants.CRLF).getBytes());
-     outgoing.flush();
-
-     System.out.println(">>> " + command);
-     }
-
-     public void send(SmtpClient.Command command, Object... params) throws IOException {
-     String cmdStr = String.format(command.getCommand(), params);
-     send(cmdStr);
-     }
-
-     @Override
-     public void write(String data) throws IOException {
-     outgoing.write(data.getBytes());
-     }*/
 }

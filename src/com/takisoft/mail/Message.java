@@ -1,11 +1,11 @@
 package com.takisoft.mail;
 
 import com.takisoft.mail.util.Base64;
+import com.takisoft.mail.util.MimeUtils;
 import com.takisoft.mail.util.provider.MimeProvider;
-import com.takisoft.mail.util.MailUtils;
+import com.takisoft.mail.util.Utils;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ public class Message {
 
     private List<Attachment> files;
 
-    private Base64 base64;
+    private final Base64 base64;
 
     public Message() {
         contentType = "text/html";
@@ -130,28 +130,6 @@ public class Message {
         return header + ": " + value + MailConstants.CRLF;
     }
 
-    /**
-     *
-     * @param str
-     * @return
-     * @throws UnsupportedEncodingException
-     * @deprecated See TODO!
-     */
-    @Deprecated
-    private String convertToBase64UTF8(String str) throws UnsupportedEncodingException {
-        // TODO An encoded-word may not be more than 75 characters long, 
-        // including charset, encoding, encoded text, and delimiters. 
-        // If it is desirable to encode more text than will fit in an 
-        // encoded-word of 75 characters, multiple encoded-words 
-        // (separated by CRLF SPACE) may be used.
-        StringBuilder sb = new StringBuilder();
-        sb.append("=?UTF-8?B?");
-        sb.append(base64.encodeToString(str.getBytes("UTF-8")));
-        sb.append("?=");
-
-        return sb.toString();
-    }
-
     @Override
     public String toString() {
 
@@ -167,12 +145,8 @@ public class Message {
             String name = rec.getName();
 
             if (name != null) {
-                try {
-                    sbRecipients.append(convertToBase64UTF8(name));
-                    sbRecipients.append(' ');
-                } catch (UnsupportedEncodingException ex) {
-                    ex.printStackTrace();
-                }
+                sbRecipients.append(MimeUtils.createEncodedWords(name));
+                sbRecipients.append(' ');
             }
 
             sbRecipients.append('<');
@@ -186,12 +160,7 @@ public class Message {
         sb.append(createHeader("To", sbRecipients.toString()));
 
         if (subject != null) {
-            try {
-                sb.append(createHeader("Subject", convertToBase64UTF8(subject)));
-            } catch (UnsupportedEncodingException ex) {
-                ex.printStackTrace();
-                sb.append(createHeader("Subject", subject));
-            }
+            sb.append(createHeader("Subject", MimeUtils.createEncodedWords(subject)));
         }
 
         sb.append(createHeader("Content-Type", contentType));
@@ -228,17 +197,15 @@ public class Message {
         }
 
         if (text != null) {
-            try {
-                insertBoundary(sb);
-                sb.append(createHeader("Content-Type", "text/html; charset=utf-8"));
-                sb.append(createHeader("Content-Transfer-Encoding", "base64"));
 
-                sb.append(MailConstants.CRLF);
-                sb.append(base64.encodeToString(text.getBytes("UTF-8")));
-                sb.append(MailConstants.CRLF);
-            } catch (UnsupportedEncodingException ex) {
-                ex.printStackTrace();
-            }
+            insertBoundary(sb);
+            sb.append(createHeader("Content-Type", "text/html; charset=utf-8"));
+            sb.append(createHeader("Content-Transfer-Encoding", "base64"));
+
+            sb.append(MailConstants.CRLF);
+            sb.append(base64.encodeToString(Utils.getBytes(text)));
+            sb.append(MailConstants.CRLF);
+
         }
 
         insertBoundary(sb, true);
