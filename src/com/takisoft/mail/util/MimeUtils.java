@@ -51,13 +51,20 @@ public class MimeUtils {
         if (b64StrSize > AVAILABLE) {
             char[] chars = str.toCharArray();
 
-            final int maxSizeBeforeEncoding = (AVAILABLE * 3 / 4) - 2;
+            final int maxSizeBeforeEncoding = (AVAILABLE * 3 / 4) - 3;
             StringBuilder tmp = new StringBuilder(maxSizeBeforeEncoding);
 
             int bytesUsed = 0;
+            boolean isHighSurrogate = false;
 
             for (int i = 0; i < chars.length; i++) {
                 int byteUse = getCharSize(chars[i]);
+
+                if (Character.isHighSurrogate(chars[i]) && (i + 1) < chars.length) {
+                    byteUse += getCharSize(chars[i + 1]);
+                    isHighSurrogate = true;
+                }
+
                 if (bytesUsed + byteUse > maxSizeBeforeEncoding) {
                     sb.append(ENC_WORD_START);
                     sb.append(base64.encodeToString(Utils.getBytes(tmp.toString())));
@@ -71,6 +78,11 @@ public class MimeUtils {
 
                 bytesUsed += byteUse;
                 tmp.append(chars[i]);
+
+                if (isHighSurrogate) {
+                    isHighSurrogate = false;
+                    tmp.append(chars[++i]);
+                }
             }
 
             if (tmp.length() > 0) {
