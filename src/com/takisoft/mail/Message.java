@@ -115,6 +115,10 @@ public class Message {
         Attachment mailFile = new Attachment(file.getName(), file);
         return addFile(mailFile);
     }
+    
+    public boolean addFile(String filePath) throws IOException {
+        return addFile(new File(filePath));
+    }
 
     public boolean addFile(String filename, File file, String mime) throws IOException {
         Attachment mailFile = new Attachment(filename, file, mime);

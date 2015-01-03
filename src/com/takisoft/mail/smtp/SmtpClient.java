@@ -4,6 +4,7 @@ import com.takisoft.mail.MailCommand;
 import com.takisoft.mail.MailConstants;
 import com.takisoft.mail.MailConstants.Security;
 import com.takisoft.mail.Message;
+import com.takisoft.mail.ProgressCallback;
 import com.takisoft.mail.Recipient;
 import com.takisoft.mail.exception.SmtpReplyCodeException;
 import com.takisoft.mail.net.NetUtils;
@@ -116,7 +117,7 @@ public class SmtpClient {
         this.token = token;
     }
 
-    public void connect() throws IOException, SmtpReplyCodeException {
+    public synchronized void connect() throws IOException, SmtpReplyCodeException {
         if (host == null) {
             throw new IllegalStateException("Host is unknown!");
         }
@@ -157,7 +158,11 @@ public class SmtpClient {
         auth(ehloMsg);
     }
 
-    public void send(Message msg) throws IOException, SmtpReplyCodeException {
+    public synchronized void send(Message msg) throws IOException, SmtpReplyCodeException {
+        send(msg, null);
+    }
+
+    public synchronized void send(Message msg, ProgressCallback callback) throws IOException, SmtpReplyCodeException {
         ioOperations.send(Command.MAIL_FROM, /*user*/ msg.getFrom());
         ioOperations.receive().throwException();
 
@@ -175,20 +180,29 @@ public class SmtpClient {
         int len = msgData.length();
         final int partSize = 512;
 
+        if (callback != null) {
+            callback.progress(0, len);
+        }
+
         for (int i = 0; i < len; i += partSize) {
             int end = Math.min(len - i, partSize);
             ioOperations.write(msgData.substring(i, i + end));
+
+            if (callback != null) {
+                callback.progress(i, len);
+            }
         }
 
         ioOperations.send(Command.DATA_END);
         ioOperations.receive().throwException();
     }
 
-    public void disconnect() throws IOException, SmtpReplyCodeException {
+    public synchronized void disconnect() throws IOException, SmtpReplyCodeException {
         if (socket != null && !socket.isClosed()) {
             ioOperations.send(Command.QUIT);
             ioOperations.receive().throwException();
             socket.close();
+            socket = null;
         }
     }
 
