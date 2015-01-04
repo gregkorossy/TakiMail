@@ -214,17 +214,25 @@ public class SmtpClient {
                 // TODO remove AUTH (remove index #0)
                 // TODO add XOAUTH2 to the switch...case
                 String[] params = line.split(" ");
-                AuthMethod method = AuthMethod.getFirstSupported(params);
-                if (method != null) {
-                    switch (method) {
-                        case LOGIN:
-                            authLogin();
-                            break;
-                        case PLAIN:
-                            authPlain();
-                            break;
-                        default:
-                            throw new SmtpReplyCodeException(999);
+                if (token != null) {
+                    if (AuthMethod.XOAUTH2.isSupported(params)) {
+                        authOauth2();
+                    } else {
+                        throw new SmtpReplyCodeException(999);
+                    }
+                } else {
+                    AuthMethod method = AuthMethod.getFirstSupported(params);
+                    if (method != null) {
+                        switch (method) {
+                            case LOGIN:
+                                authLogin();
+                                break;
+                            case PLAIN:
+                                authPlain();
+                                break;
+                            default:
+                                throw new SmtpReplyCodeException(999);
+                        }
                     }
                 }
             }
