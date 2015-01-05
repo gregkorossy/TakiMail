@@ -285,7 +285,8 @@ public class SmtpClient {
             final char CTRL_A = '\001';
             Base64 enc = Base64.getInstance();
 
-            StringBuilder sb = new StringBuilder(user);
+            StringBuilder sb = new StringBuilder("user=");
+            sb.append(user);
             sb.append(CTRL_A);
             sb.append("auth=Bearer ");
             sb.append(token);
