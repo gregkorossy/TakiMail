@@ -14,9 +14,6 @@ import com.takisoft.mail.util.Utils;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 public class SmtpClient {
 
@@ -163,6 +160,10 @@ public class SmtpClient {
     }
 
     public synchronized void send(Message msg, ProgressCallback callback) throws IOException, SmtpReplyCodeException {
+        if (ioOperations == null) {
+            throw new IOException("I/O operations don't exist!");
+        }
+
         ioOperations.send(Command.MAIL_FROM, /*user*/ msg.getFrom());
         ioOperations.receive().throwException();
 
@@ -191,6 +192,10 @@ public class SmtpClient {
             if (callback != null) {
                 callback.progress(i, len);
             }
+        }
+
+        if (callback != null) {
+            callback.progress(len, len);
         }
 
         ioOperations.send(Command.DATA_END);
