@@ -12,10 +12,25 @@ import java.util.List;
 
 public class Message {
 
+    public static enum TextType {
+
+        PLAIN("text/plain"), HTML("text/html");
+        final String mime;
+
+        TextType(String mime) {
+            this.mime = mime;
+        }
+
+        public String getMime() {
+            return mime;
+        }
+    }
+
     private final List<Recipient> recipients;
     private String from;
     private String subject;
     private String text;
+    private TextType textType;
     private String contentType;
     private String boundary;
 
@@ -24,7 +39,8 @@ public class Message {
     private final Base64 base64;
 
     public Message() {
-        contentType = "text/html";
+        textType = TextType.PLAIN;
+        contentType = textType.getMime();
         boundary = null;
         recipients = new ArrayList<Recipient>();
 
@@ -60,6 +76,10 @@ public class Message {
     }
 
     public void setText(String text) {
+        setText(TextType.PLAIN, text);
+    }
+
+    public void setText(TextType textType, String text) {
         // TODO max line length?
 
 //        // not needed, using base64 encode later
@@ -75,6 +95,7 @@ public class Message {
 //            }
 //            sb.append(line);
 //        }
+        this.textType = textType;
         this.text = text;
     }
 
@@ -115,7 +136,7 @@ public class Message {
         Attachment mailFile = new Attachment(file.getName(), file);
         return addFile(mailFile);
     }
-    
+
     public boolean addFile(String filePath) throws IOException {
         return addFile(new File(filePath));
     }
@@ -203,7 +224,7 @@ public class Message {
         if (text != null) {
 
             insertBoundary(sb);
-            sb.append(createHeader("Content-Type", "text/html; charset=utf-8"));
+            sb.append(createHeader("Content-Type", textType.getMime() + "; charset=utf-8"));
             sb.append(createHeader("Content-Transfer-Encoding", "base64"));
 
             sb.append(MailConstants.CRLF);

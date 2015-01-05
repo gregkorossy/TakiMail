@@ -206,6 +206,10 @@ public class SmtpClient {
         }
     }
 
+    public synchronized boolean isConnected() {
+        return socket != null && !socket.isClosed() && socket.isConnected();
+    }
+
     protected void auth(SmtpResponse featureListResponse) throws IOException, SmtpReplyCodeException {
         List<String> lines = featureListResponse.getLines();
 
