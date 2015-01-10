@@ -5,19 +5,19 @@ import java.util.List;
 
 public class Pop3Response {
 
-    private boolean isSuccessful;
+    private boolean successful;
     private final List<String> lines;
 
     {
         lines = new ArrayList<String>();
     }
 
-    public boolean isIsSuccessful() {
-        return isSuccessful;
+    public boolean isSuccessful() {
+        return successful;
     }
 
-    public void setIsSuccessful(boolean isSuccessful) {
-        this.isSuccessful = isSuccessful;
+    public void setSuccessful(boolean successful) {
+        this.successful = successful;
     }
 
     public List<String> getLines() {
@@ -25,6 +25,10 @@ public class Pop3Response {
     }
 
     public void addLine(String line) {
+        if (lines.isEmpty()) {
+            successful = line.trim().startsWith("+OK");
+        }
+
         lines.add(line);
     }
 
