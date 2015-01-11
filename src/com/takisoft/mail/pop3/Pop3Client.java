@@ -9,17 +9,34 @@ public class Pop3Client {
 
     protected static enum Command implements MailCommand {
 
-        ;
+        QUIT("QUIT", true),
+        STAT("STAT", true), LIST("LIST", false), LIST_MSG("LIST %d", true),
+        RETR("RETR %d", false), DELE("DELE %d", true), NOOP("NOOP", true),
+        RSET("RSET", true),
+        /* OPTIONAL COMMANDS */
+        TOP("TOP %d %d", true), UIDL("UIDL", false), UIDL_MSG("UIDL %d", true),
+        USER("USER %s", true), PASS("PASS %s", true), APOP("APOP %s %s", true);
 
         final String command;
+        final boolean singleLine;
 
-        Command(String command) {
+        Command(String command, boolean singleLine) {
             this.command = command;
+            this.singleLine = singleLine;
         }
 
         @Override
         public String getCommand() {
             return command;
+        }
+
+        /**
+         * Tells whether the answer is a single line.
+         *
+         * @return Returns true if the answer is a single line, otherwise false.
+         */
+        public boolean isSingleLine() {
+            return singleLine;
         }
     }
 
@@ -54,11 +71,11 @@ public class Pop3Client {
         this.pass = pass;
         this.security = security;
     }
-    
-    public void connect() throws IOException {
+
+    public synchronized void connect() throws IOException {
         // TODO
     }
-    
+
     public synchronized void disconnect() throws IOException {
         if (socket != null && !socket.isClosed()) {
             socket.close();
